@@ -2,67 +2,48 @@ import csv
 import re
 from pprint import pprint
 
-
 with open("phonebook_raw.csv", encoding="utf-8") as f:
   rows = csv.reader(f, delimiter=",")
   contacts_list = list(rows)
 #pprint(contacts_list)
 
-# TODO 1: выполните пункты 1-3 ДЗ
-# ваш код
-# создаем список и добавлем в него шапку таблицы
-result = [contacts_list[0]]
-# проходимся по списку: имя, фамилия, отчество распределяем по своим ячейкам, остальные данные оставляем как есть
-for i in range(1, len(contacts_list)):
-  s = " ".join(contacts_list[i][:3]).strip().split(" ")
-  res_s = [i for i in s if i]
-  result.append([
-      res_s[0], res_s[1], res_s[2] if len(res_s) > 2 else " ",
-      contacts_list[i][3], contacts_list[i][4], contacts_list[i][5],
-      contacts_list[i][6]
-  ])
+PHONE_PATTERN = r'(\+7|8)*[\s\(]*(\d{3})[\)\s-]*(\d{3})[-]*(\d{2})[-]*(\d{2})[\s\(]*(доб\.)*[\s]*(\d+)*[\)]*'
+PHONE_SUB = r'+7(\2)-\3-\4-\5 \6\7'
 
-#  подготовили pattern для телефонных номеров
-pattern = r"(\+7|8)?\s*\(*(\d{3})\)*[\s-]*(\d{3})[\s-]*(\d{2})[\s-]*(\d{2})\s*\(*([доб\.]*\s*\d{4})?\)*"
-pattern_comp = re.compile(pattern)
+def main(contact_list: list):
+  new_list = list()
+  for item in contact_list:
+    full_name = ' '.join(item[:3]).split(' ')
+    result = [full_name[0], full_name[1], full_name[2], item[3], item[4],
+              re.sub(PHONE_PATTERN, PHONE_SUB, item[5]),
+              item[6]]
+    new_list.append(result)
+  return (new_list)
+#pprint(main(contacts_list))
+def new_file(new_list: list):
+  for contact in new_list:
+    first_name = contact[0]
+    last_name = contact[1]
+    for new_contact in new_list:
+      new_first_name = new_contact[0]
+      new_last_name = new_contact[1]
+      if first_name == new_first_name and last_name == new_last_name:
+        if contact[2] == "":
+          contact[2] = new_contact[2]
+        if contact[3] == "":
+          contact[3] = new_contact[3]
+        if contact[4] == "":
+          contact[4] = new_contact[4]
+        if contact[5] == "":
+          contact[5] = new_contact[5]
+        if contact[6] == "":
+          contact[6] = new_contact[6]
+  result_list = list()
+  for i in new_list:
+    if i not in result_list:
+      result_list.append(i)
+  return result_list
 
-# обновляем номера по формату +7(\2)\3-\4-\5 \6
-for i in range(1, len(result)):
-  result_tel = pattern_comp.sub(r"+7(\2)\3-\4-\5 \6", result[i][5])
-  result[i][5] = result_tel
-
-# Функция для объединения данных по фамилия, имя
-def merge_duplicates(data):
-    merged = {}
-    for i in data[1:]:
-        key = (i[0], i[1])
-        if key in merged:
-            if i[2]:
-                merged[key][2] = i[2]
-            if i[3]:
-                merged[key][3] = i[3]
-            if i[4]:
-                merged[key][4] = i[4]
-            if i[5]:
-                merged[key][5] = i[5]
-            if i[6]:
-                merged[key][5] = i[6]
-        else:
-            merged[key] = i
-    return [data[0]] + list(merged.values())
-
-
-if __name__ == "__main__":
-    merged_data = merge_duplicates(result)
-    pprint(merged_data)
-         
-          
-          
-        
-    
-# TODO 2: сохраните получившиеся данные в другой файл
-# код для записи файла в формате CSV
 with open("phonebook.csv", "w", encoding="utf-8") as f:
   datawriter = csv.writer(f, delimiter=',')
-  # Вместо contacts_list подставьте свой список
-  datawriter.writerows(contacts_list)
+  datawriter.writerows(new_file(main(contacts_list)))
